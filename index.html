@@ -1,7 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <!--
+    gift-to-to-go
+    Author: s24113317-luni
+    License: MIT (add your preferred license or keep as-is)
+  -->
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="author" content="s24113317-luni">
   <title>🎁 Gift-on-the-Go Vending</title>
   <style>
     body {
@@ -105,14 +112,32 @@
 
     <button onclick="generateGift()">Create Gift</button>
 
-    <div id="output"></div>
+    <div id="output" aria-live="polite"></div>
+    <div id="authorInfo" style="margin-top:12px;font-size:0.9em;opacity:0.95;color:#fff;">
+      Created by <strong>s24113317-luni</strong> — License: <em>MIT</em>
+    </div>
   </div>
 
   <script>
+    // Sanitize text to prevent accidental HTML injection when writing to innerHTML
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
     function generateGift() {
-      const giftType = document.getElementById("giftType").value;
-      const boxStyle = document.getElementById("boxStyle").value;
-      const message = document.getElementById("customMessage").value.trim();
+      const giftTypeEl = document.getElementById("giftType");
+      const boxStyleEl = document.getElementById("boxStyle");
+      const messageEl = document.getElementById("customMessage");
+
+      const giftType = giftTypeEl ? giftTypeEl.value : 'Unknown';
+      const boxStyle = boxStyleEl ? boxStyleEl.value : 'Classic';
+      const messageRaw = messageEl ? messageEl.value.trim() : '';
+      const message = messageRaw || 'No message added';
 
       const prices = {
         Birthday: 150,
@@ -121,19 +146,26 @@
         Celebration: 180
       };
 
-      const total = prices[giftType];
+      const total = prices[giftType] ?? 0;
 
       const output = `
         <div class="confetti">🎊✨🎉</div>
         <strong>Gift Summary:</strong><br>
-        Type: ${giftType}<br>
-        Box Style: ${boxStyle}<br>
-        Message: "${message || 'No message added'}"<br>
+        Type: ${escapeHtml(giftType)}<br>
+        Box Style: ${escapeHtml(boxStyle)}<br>
+        Message: "${escapeHtml(message)}"<br>
         <strong>Total Cost:</strong> NT$${total}<br>
         <div class="confetti">🎁💖🎊</div>
       `;
 
       document.getElementById("output").innerHTML = output;
+
+      // Persist last message for convenience
+      try {
+        localStorage.setItem('lastMessage', messageRaw);
+      } catch (e) {
+        // ignore if storage unavailable
+      }
     }
   </script>
 </body>
