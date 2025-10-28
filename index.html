@@ -86,6 +86,71 @@
       0%, 100% { transform: translateY(0); }
       50% { transform: translateY(-10px); }
     }
+    /* Extra upgrade styles */
+    #confettiCanvas {
+      position: fixed;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    .extra-controls {
+      margin-top: 12px;
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .extra-controls button {
+      padding: 8px 12px;
+      font-size: 0.95em;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      background: rgba(255,255,255,0.12);
+      color: #fff;
+    }
+
+    .gift-preview {
+      margin-top: 12px;
+      font-size: 1.05em;
+      background: rgba(255,255,255,0.06);
+      padding: 10px;
+      border-radius: 10px;
+      color: #fff;
+    }
+
+    .price-breakdown {
+      margin-top: 8px;
+      font-size: 0.95em;
+      background: rgba(255,255,255,0.06);
+      padding: 8px;
+      border-radius: 8px;
+      color: #fff;
+    }
+    /* Focus and accessibility improvements */
+    button:focus, select:focus, input:focus {
+      outline: 3px solid rgba(255,255,255,0.25);
+      outline-offset: 3px;
+      box-shadow: 0 0 0 3px rgba(0,0,0,0.15) inset;
+    }
+
+    /* Theme override (calm mode) */
+    body.calm {
+      background: linear-gradient(180deg, #f6f7fb, #eef2f7);
+      color: #111;
+    }
+    body.calm .container {
+      background: rgba(255,255,255,0.92);
+      color: #111;
+      box-shadow: 0 6px 30px rgba(0,0,0,0.08);
+    }
+    body.calm button { background-color: #222; color: #fff; }
+    body.calm #authorInfo { color: #333; }
   </style>
 </head>
 <body>
@@ -116,6 +181,18 @@
     <div id="authorInfo" style="margin-top:12px;font-size:0.9em;opacity:0.95;color:#fff;">
       Created by <strong>s24113317-luni</strong> — License: <em>MIT</em>
     </div>
+
+    <div class="extra-controls" id="extras">
+      <button id="surpriseBtn" title="Surprise me">🎲 Surprise Me (S)</button>
+      <button id="saveBtn" title="Save gift">💾 Save Gift</button>
+      <button id="shareBtn" title="Share gift">🔗 Share</button>
+      <button id="copyBtn" title="Copy summary">📋 Copy</button>
+      <button id="downloadBtn" title="Download summary">⬇️ Download</button>
+      <button id="themeBtn" title="Toggle theme">🌗 Theme</button>
+    </div>
+
+    <div id="preview" class="gift-preview" aria-live="polite">Preview: —</div>
+    <div id="breakdown" class="price-breakdown" style="display:none;"></div>
   </div>
 
   <script>
@@ -167,6 +244,195 @@
         // ignore if storage unavailable
       }
     }
+  </script>
+  <!-- Extra interactive script (non-invasive: runs after original create) -->
+  <script>
+    (function () {
+      const confettiCanvas = document.createElement('canvas');
+      confettiCanvas.id = 'confettiCanvas';
+      document.body.appendChild(confettiCanvas);
+      const ctx = confettiCanvas.getContext && confettiCanvas.getContext('2d');
+      let particles = [];
+      let rafId = null;
+
+      function resize() {
+        confettiCanvas.width = window.innerWidth;
+        confettiCanvas.height = window.innerHeight;
+      }
+      window.addEventListener('resize', resize);
+      resize();
+
+      function spawnConfetti(n = 60) {
+        if (!ctx) return;
+        const colors = ['#FFD700','#FF6B6B','#6BCB77','#4D96FF','#B28DFF'];
+        for (let i = 0; i < n; i++) {
+          particles.push({
+            x: Math.random() * confettiCanvas.width,
+            y: -10 - Math.random() * 200,
+            vx: (Math.random() - 0.5) * 6,
+            vy: 2 + Math.random() * 4,
+            size: 6 + Math.random() * 10,
+            color: colors[Math.floor(Math.random()*colors.length)],
+            rot: Math.random() * Math.PI * 2,
+            rotSpeed: (Math.random()-0.5) * 0.3
+          });
+        }
+        if (!rafId) draw();
+      }
+
+      function draw() {
+        rafId = requestAnimationFrame(draw);
+        ctx.clearRect(0,0,confettiCanvas.width, confettiCanvas.height);
+        for (let i = particles.length-1; i >= 0; i--) {
+          const p = particles[i];
+          p.x += p.vx; p.y += p.vy; p.vy += 0.05; p.rot += p.rotSpeed;
+          ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+          ctx.fillStyle = p.color; ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size*0.6);
+          ctx.restore();
+          if (p.y > confettiCanvas.height + 50) particles.splice(i,1);
+        }
+        if (particles.length === 0) { cancelAnimationFrame(rafId); rafId = null; }
+      }
+
+      const sound = document.createElement('audio');
+      sound.id = 'giftSound';
+      sound.src = 'https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg';
+      sound.preload = 'auto';
+      document.body.appendChild(sound);
+
+      const mainBtn = document.querySelector('button[onclick="generateGift()"]');
+
+      function readForm() {
+        const giftType = (document.getElementById('giftType') || {}).value || 'Birthday';
+        const boxStyle = (document.getElementById('boxStyle') || {}).value || 'Classic';
+        const message = (document.getElementById('customMessage') || {}).value || '';
+        return { giftType, boxStyle, message };
+      }
+
+      function showPreview(data) {
+        const preview = document.getElementById('preview');
+        if (!preview) return;
+        const emoji = { Classic:'🎁', Cute:'🐻', Elegant:'💎', Surprise:'🎊' }[data.boxStyle] || '🎁';
+        const typeEmoji = { Birthday:'🎂', Anniversary:'💖', Apology:'🙏', Celebration:'🎉' }[data.giftType] || '';
+        preview.textContent = `Preview: ${emoji} ${typeEmoji} — "${data.message || 'No message added'}"`;
+      }
+
+      function showBreakdown(giftType) {
+        const prices = { Birthday:150, Anniversary:200, Apology:120, Celebration:180 };
+        const subtotal = prices[giftType] || 0;
+        const tax = Math.round(subtotal * 0.05);
+        const total = subtotal + tax;
+        const el = document.getElementById('breakdown');
+        if (!el) return;
+        el.innerHTML = `Subtotal: NT$${subtotal} <br>Tax (5%): NT$${tax} <br><strong>Total: NT$${total}</strong>`;
+        el.style.display = '';
+      }
+
+      function summaryText(data) {
+        return `Gift: ${data.giftType}\nBox: ${data.boxStyle}\nMessage: "${data.message || 'No message added'}"`;
+      }
+
+      async function shareSummary(text) {
+        if (navigator.share) {
+          try { await navigator.share({ text }); alert('Shared successfully'); } catch (e) {}
+        } else {
+          await navigator.clipboard.writeText(text);
+          alert('Summary copied to clipboard');
+        }
+      }
+
+      function saveGift(data) {
+        try {
+          const store = JSON.parse(localStorage.getItem('savedGifts') || '[]');
+          store.unshift({ data, ts: Date.now() });
+          localStorage.setItem('savedGifts', JSON.stringify(store.slice(0,10)));
+          alert('Gift saved locally');
+        } catch (e) { alert('Unable to save locally'); }
+      }
+
+      // After original generateGift runs, run extras
+      if (mainBtn) {
+        mainBtn.addEventListener('click', function () {
+          // allow original synchronous handler to run
+          setTimeout(() => {
+            const data = readForm();
+            showPreview(data);
+            showBreakdown(data.giftType);
+            spawnConfetti(80);
+            try { sound.currentTime = 0; sound.play(); } catch (e) {}
+          }, 20);
+        });
+      }
+
+      // Surprise button
+      const surprise = document.getElementById('surpriseBtn');
+      surprise && surprise.addEventListener('click', function () {
+        const types = Array.from(document.getElementById('giftType').options).map(o => o.value);
+        const boxes = Array.from(document.getElementById('boxStyle').options).map(o => o.value);
+        const msgs = ['You make my day!', 'With love ❤️', 'Hope this brightens your day!', 'A little surprise!'];
+        document.getElementById('giftType').value = types[Math.floor(Math.random()*types.length)];
+        document.getElementById('boxStyle').value = boxes[Math.floor(Math.random()*boxes.length)];
+        document.getElementById('customMessage').value = msgs[Math.floor(Math.random()*msgs.length)];
+        mainBtn && mainBtn.click();
+      });
+
+      // Save / Share / Copy
+      document.getElementById('saveBtn')?.addEventListener('click', () => { saveGift(readForm()); });
+      document.getElementById('shareBtn')?.addEventListener('click', () => { shareSummary(summaryText(readForm())); });
+      document.getElementById('copyBtn')?.addEventListener('click', async () => { await navigator.clipboard.writeText(summaryText(readForm())); alert('Summary copied to clipboard'); });
+
+      // Keyboard shortcuts
+      window.addEventListener('keydown', function (e) {
+        if (e.key === 's' || e.key === 'S') {
+          document.getElementById('surpriseBtn')?.click();
+        }
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+          mainBtn && mainBtn.click();
+        }
+      });
+
+      // Load last message if present
+      document.addEventListener('DOMContentLoaded', function () {
+        try {
+          const last = localStorage.getItem('lastMessage');
+          if (last !== null && document.getElementById('customMessage')) document.getElementById('customMessage').value = last;
+        } catch (e) {}
+      });
+      // Theme persistence: set theme from localStorage
+      (function () {
+        try {
+          const theme = localStorage.getItem('theme') || 'rainbow';
+          if (theme === 'calm') document.body.classList.add('calm');
+          const themeBtn = document.getElementById('themeBtn');
+          if (themeBtn) themeBtn.textContent = theme === 'calm' ? '🌞 Light' : '🌗 Theme';
+          themeBtn?.addEventListener('click', function () {
+            const isCalm = document.body.classList.toggle('calm');
+            localStorage.setItem('theme', isCalm ? 'calm' : 'rainbow');
+            themeBtn.textContent = isCalm ? '🌞 Light' : '🌗 Theme';
+          });
+        } catch (e) {}
+      })();
+
+      // Download summary as text file
+      (function () {
+        const dl = document.getElementById('downloadBtn');
+        if (!dl) return;
+        dl.addEventListener('click', function () {
+          const data = readForm();
+          const text = summaryText(data);
+          const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          const safeName = (data.giftType || 'gift').replace(/[^a-z0-9_-]/gi, '_');
+          a.download = `${safeName}_summary.txt`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(url);
+        });
+      })();
+    })();
   </script>
 </body>
 </html>
