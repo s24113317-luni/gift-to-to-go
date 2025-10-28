@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>🎁 Gift-on-the-Go Vending</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(270deg, #ff9a9e, #fad0c4, #fbc2eb, #a1c4fd, #c2e9fb, #d4fc79, #96e6a1);
+      background-size: 1400% 1400%;
+      animation: rainbowShift 20s ease infinite;
+      color: #fff;
+      text-align: center;
+      padding: 40px;
+    }
+
+    @keyframes rainbowShift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    h1 {
+      font-size: 2.5em;
+      color: #fff;
+      margin-bottom: 20px;
+      text-shadow: 0 0 10px #000;
+    }
+
+    .container {
+      background: rgba(0, 0, 0, 0.6);
+      border-radius: 20px;
+      padding: 30px;
+      max-width: 600px;
+      margin: auto;
+      box-shadow: 0 0 30px rgba(255, 255, 255, 0.3);
+    }
+
+    select, input[type="text"] {
+      padding: 10px;
+      font-size: 1.1em;
+      border-radius: 8px;
+      border: none;
+      margin: 10px 0;
+      width: 80%;
+    }
+
+    button {
+      padding: 12px 25px;
+      font-size: 1.2em;
+      background-color: #fff;
+      color: #000;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      margin-top: 20px;
+    }
+
+    button:hover {
+      background-color: #35ff49;
+    }
+
+    #output {
+      margin-top: 30px;
+      font-size: 1.2em;
+      background: rgba(255, 255, 255, 0.2);
+      padding: 20px;
+      border-radius: 15px;
+      box-shadow: 0 0 10px #fff;
+    }
+
+    .confetti {
+      font-size: 2em;
+      animation: bounce 1s infinite;
+    }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+  </style>
+</head>
+<body>
+  <h1>🎁 Gift-on-the-Go Vending Machine</h1>
+  <div class="container">
+    <label>Choose Gift Type:</label><br>
+    <select id="giftType">
+      <option value="Birthday">🎂 Birthday</option>
+      <option value="Anniversary">💖 Anniversary</option>
+      <option value="Apology">🙏 Apology</option>
+      <option value="Celebration">🎉 Celebration</option>
+    </select><br>
+
+    <label>Select Box Style:</label><br>
+    <select id="boxStyle">
+      <option value="Classic">🎁 Classic</option>
+      <option value="Cute">🐻 Cute</option>
+      <option value="Elegant">💎 Elegant</option>
+      <option value="Surprise">🎊 Surprise</option>
+    </select><br>
+
+    <label>Your Message:</label><br>
+    <input type="text" id="customMessage" placeholder="Write something sweet..."><br>
+
+    <button onclick="generateGift()">Create Gift</button>
+
+    <div id="output"></div>
+  </div>
+
+  <script>
+    function generateGift() {
+      const giftType = document.getElementById("giftType").value;
+      const boxStyle = document.getElementById("boxStyle").value;
+      const message = document.getElementById("customMessage").value.trim();
+
+      const prices = {
+        Birthday: 150,
+        Anniversary: 200,
+        Apology: 120,
+        Celebration: 180
+      };
+
+      const total = prices[giftType];
+
+      const output = `
+        <div class="confetti">🎊✨🎉</div>
+        <strong>Gift Summary:</strong><br>
+        Type: ${giftType}<br>
+        Box Style: ${boxStyle}<br>
+        Message: "${message || 'No message added'}"<br>
+        <strong>Total Cost:</strong> NT$${total}<br>
+        <div class="confetti">🎁💖🎊</div>
+      `;
+
+      document.getElementById("output").innerHTML = output;
+    }
+  </script>
+</body>
+</html>
+
